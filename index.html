@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>每日情報站</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg:#0a0c10; --surface:#111318; --surface2:#181c24; --border:#1e2430;
+  --accent:#00d4a0; --accent2:#3b82f6; --accent3:#a855f7; --accent4:#f59e0b; --accent5:#06b6d4;
+  --danger:#ff5c6a; --text:#e8eaf2; --muted:#5a6272;
+  --mono:'DM Mono',monospace; --sans:'Noto Sans TC',sans-serif; --display:'Playfair Display',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,212,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,160,.025) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;}
+
+.wrapper{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:32px 24px 80px;}
+
+/* HEADER */
+header{margin-bottom:32px;}
+.header-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;}
+.brand{font-family:var(--display);font-size:26px;color:#fff;letter-spacing:-.5px;}
+.date-badge{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(0,212,160,.08);border:1px solid rgba(0,212,160,.2);padding:5px 12px;border-radius:4px;letter-spacing:1px;}
+.sub{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.5px;}
+
+/* TABS */
+.tab-bar{display:flex;gap:2px;margin-bottom:32px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.tab-bar::-webkit-scrollbar{display:none;}
+.tab-btn{display:flex;align-items:center;gap:7px;padding:10px 18px;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.5px;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color .2s,border-color .2s;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:#fff;border-bottom-color:var(--tab-color,var(--accent));}
+.tab-btn .dot{width:6px;height:6px;border-radius:50%;background:var(--tab-color,var(--accent));opacity:.5;}
+.tab-btn.active .dot{opacity:1;}
+.tab-panel{display:none;animation:fadeIn .3s ease;}
+.tab-panel.active{display:block;}
+
+/* SECTION TITLE */
+.section-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* SENTIMENT */
+.sentiment-banner{display:flex;align-items:flex-start;gap:16px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);padding:16px 20px;border-radius:6px;margin-bottom:28px;}
+.sentiment-icon{font-size:26px;flex-shrink:0;margin-top:2px;}
+.sentiment-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.sentiment-text{font-size:14px;color:var(--text);line-height:1.6;}
+.sentiment-tag{margin-left:auto;flex-shrink:0;font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(0,212,160,.1);color:var(--accent);border:1px solid rgba(0,212,160,.25);}
+.sentiment-tag.risk-off{background:rgba(255,92,106,.1);color:var(--danger);border-color:rgba(255,92,106,.25);}
+.prev-note{font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);line-height:1.6;}
+.prev-label{color:var(--accent);font-family:var(--mono);font-size:9px;letter-spacing:1px;}
+
+/* REGION GRID */
+.region-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:28px;}
+.region-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.region-header{padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+table{width:100%;border-collapse:collapse;}
+td{padding:10px 16px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+.idx-name{color:var(--text);font-size:13px;font-weight:500;}
+.idx-ticker{font-family:var(--mono);font-size:10px;color:var(--muted);display:block;margin-top:1px;}
+.idx-price{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;}
+.idx-change{font-family:var(--mono);font-size:13px;font-weight:500;text-align:right;min-width:70px;}
+.up{color:var(--accent);}.down{color:var(--danger);}.flat{color:var(--muted);}
+.bar-cell{width:60px;}
+.mini-bar{height:4px;border-radius:2px;background:var(--border);overflow:hidden;}
+.mini-bar-fill{height:100%;border-radius:2px;}
+
+/* FX */
+.fx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:28px;}
+.fx-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 20px;}
+.fx-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+.fx-value{font-family:var(--mono);font-size:22px;font-weight:500;color:#fff;margin-bottom:4px;}
+.fx-sub{font-family:var(--mono);font-size:12px;}
+.fx-note{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;}
+
+/* NEWS */
+.news-list{display:flex;flex-direction:column;gap:12px;margin-bottom:28px;}
+.news-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;display:flex;gap:16px;}
+.news-num{font-family:var(--mono);font-size:22px;font-weight:300;color:var(--border);line-height:1;flex-shrink:0;padding-top:2px;}
+.news-tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:rgba(59,130,246,.1);color:var(--accent2);border:1px solid rgba(59,130,246,.2);margin-bottom:8px;text-transform:uppercase;}
+.news-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.news-body{font-size:13px;color:#8892a4;line-height:1.7;}
+
+/* ARTICLE CARDS */
+.articles-list{display:flex;flex-direction:column;gap:14px;}
+.article-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 22px;border-left:3px solid var(--card-accent,var(--accent3));animation:fadeIn .4s ease both;}
+.card-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.card-topic-tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:3px;}
+.card-impact{font-family:var(--mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:3px;}
+.impact-high{background:rgba(255,92,106,.1);color:var(--danger);border:1px solid rgba(255,92,106,.2);}
+.impact-mid{background:rgba(245,158,11,.1);color:var(--accent4);border:1px solid rgba(245,158,11,.2);}
+.impact-low{background:rgba(90,98,114,.15);color:var(--muted);border:1px solid var(--border);}
+.card-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.4;}
+.card-summary{font-size:13px;color:#8892a4;line-height:1.75;}
+.card-footer{margin-top:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+.card-source{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.card-rel{font-size:11px;padding:3px 10px;border-radius:4px;margin-left:auto;}
+
+/* ── ETF TAB ── */
+.etf-summary-banner {
+  background:var(--surface); border:1px solid var(--border);
+  border-left:3px solid var(--accent5);
+  padding:14px 20px; border-radius:6px; margin-bottom:28px;
+  font-size:13px; color:var(--text); line-height:1.7;
+}
+.etf-summary-label {
+  font-family:var(--mono); font-size:9px; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--accent5); margin-bottom:6px;
+}
+
+.etf-group { margin-bottom:28px; }
+
+.etf-table-wrap {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; overflow:hidden;
+}
+.etf-table-header {
+  padding:10px 16px; background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:10px;
+}
+.etf-table-header-title {
+  font-family:var(--mono); font-size:10px;
+  letter-spacing:1.5px; color:var(--muted); text-transform:uppercase;
+}
+.etf-count {
+  font-family:var(--mono); font-size:9px;
+  color:var(--accent5); background:rgba(6,182,212,.1);
+  border:1px solid rgba(6,182,212,.2);
+  padding:1px 7px; border-radius:10px;
+}
+
+.etf-row {
+  display:grid;
+  grid-template-columns: 1fr 2fr 90px 80px 80px;
+  padding:11px 16px;
+  border-bottom:1px solid var(--border);
+  align-items:center;
+  gap:8px;
+  transition: background .15s;
+}
+.etf-row:hover { background:var(--surface2); }
+.etf-row:last-child { border-bottom:none; }
+
+.etf-ticker {
+  font-family:var(--mono); font-size:12px;
+  font-weight:500; color:var(--accent5);
+}
+.etf-name { font-size:13px; color:var(--text); }
+.etf-name small { display:block; font-size:10px; color:var(--muted); margin-top:1px; }
+.etf-price { font-family:var(--mono); font-size:12px; color:var(--muted); text-align:right; }
+.etf-chg { font-family:var(--mono); font-size:13px; font-weight:500; text-align:right; }
+.etf-note { font-size:11px; color:var(--muted); text-align:right; }
+
+.etf-row-header {
+  display:grid;
+  grid-template-columns: 1fr 2fr 90px 80px 80px;
+  padding:6px 16px;
+  gap:8px;
+  border-bottom:1px solid var(--border);
+}
+.etf-row-header span {
+  font-family:var(--mono); font-size:9px;
+  letter-spacing:1px; color:var(--muted);
+  text-transform:uppercase;
+}
+.etf-row-header span:nth-child(3),
+.etf-row-header span:nth-child(4),
+.etf-row-header span:nth-child(5) { text-align:right; }
+
+/* EMPTY / ERROR */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:1px;}
+.empty-state .icon{font-size:36px;margin-bottom:16px;opacity:.4;}
+
+/* FOOTER */
+.footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.footer-note{font-family:var(--mono);font-size:10px;color:var(--muted);}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:640px){
+  .header-top{flex-direction:column;} .brand{font-size:22px;}
+  .etf-row, .etf-row-header { grid-template-columns: 70px 1fr 70px 70px; }
+  .etf-note { display:none; }
+  .etf-row-header span:last-child { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="header-top">
+      <div class="brand">每日情報站</div>
+      <div class="date-badge" id="dateBadge">—</div>
+    </div>
+    <div class="sub">DAILY INTELLIGENCE · 台灣時間早報 · <span style="color:var(--accent5)">by LinYuChun</span></div>
+  </header>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="market"  style="--tab-color:var(--accent)"><span class="dot"></span>世界市場</button>
+    <button class="tab-btn"        data-tab="etf"     style="--tab-color:var(--accent5)"><span class="dot"></span>ETF ／ 個股</button>
+    <button class="tab-btn"        data-tab="ai"      style="--tab-color:var(--accent3)"><span class="dot"></span>AI 動態</button>
+    <button class="tab-btn"        data-tab="frontend"style="--tab-color:var(--accent2)"><span class="dot"></span>前端技術</button>
+    <button class="tab-btn"        data-tab="startup" style="--tab-color:var(--accent4)"><span class="dot"></span>新創 ／ 產品</button>
+  </div>
+
+  <!-- ① 市場 -->
+  <div class="tab-panel active" id="tab-market">
+    <div class="sentiment-banner" id="sentimentBanner">
+      <div class="sentiment-icon" id="sentimentIcon">—</div>
+      <div style="flex:1">
+        <div class="sentiment-label">今日市場情緒</div>
+        <div class="sentiment-text" id="sentimentText">—</div>
+        <div class="prev-note" id="prevNote" style="display:none"></div>
+      </div>
+      <div class="sentiment-tag" id="sentimentTag">—</div>
+    </div>
+    <div class="section-title">主要市場指數</div>
+    <div class="region-grid" id="regionGrid"></div>
+    <div class="section-title">匯率 ／ 大宗商品</div>
+    <div class="fx-grid" id="fxGrid"></div>
+    <div class="section-title">今日重點新聞</div>
+    <div class="news-list" id="newsList"></div>
+  </div>
+
+  <!-- ② ETF / 個股 -->
+  <div class="tab-panel" id="tab-etf">
+    <div class="etf-summary-banner" id="etfSummary">
+      <div class="etf-summary-label">今日 ETF ／ 個股總覽</div>
+      <div id="etfSummaryText">—</div>
+    </div>
+    <div id="etfGroups"></div>
+  </div>
+
+  <!-- ③ AI -->
+  <div class="tab-panel" id="tab-ai">
+    <div class="articles-list" id="aiList"></div>
+  </div>
+
+  <!-- ④ 前端 -->
+  <div class="tab-panel" id="tab-frontend">
+    <div class="articles-list" id="feList"></div>
+  </div>
+
+  <!-- ⑤ 新創 -->
+  <div class="tab-panel" id="tab-startup">
+    <div class="articles-list" id="startupList"></div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-note">資料來源：Yahoo Finance / Reuters / HN / The Verge</div>
+    <div class="footer-note" id="footerGen">由 Claude Cowork 每日產出</div>
+    <div class="footer-note" style="width:100%;text-align:right;color:var(--accent5)">✦ Created by LinYuChun</div>
+  </div>
+</div>
+
+<script>
+// ── TAB 切換 ──────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── 渲染：市場 ────────────────────────────────────────
+function renderMarket(d) {
+  document.getElementById('dateBadge').textContent = d.date;
+  document.title = `每日情報站 — ${d.date}`;
+  document.getElementById('footerGen').textContent = `由 Claude Cowork 產出 · ${d.generatedAt || d.date}`;
+
+  const s = d.sentiment;
+  document.getElementById('sentimentIcon').textContent = s.icon;
+  document.getElementById('sentimentText').textContent = s.text;
+  const tag = document.getElementById('sentimentTag');
+  tag.textContent = s.label;
+  if (s.type === 'risk-off') {
+    tag.classList.add('risk-off');
+    document.getElementById('sentimentBanner').style.borderLeftColor = 'var(--danger)';
+  }
+  if (d.prevDaySummary) {
+    const el = document.getElementById('prevNote');
+    el.style.display = 'block';
+    el.innerHTML = `<span class="prev-label">昨日對比 ▸</span> ${d.prevDaySummary}`;
+  }
+
+  const grid = document.getElementById('regionGrid');
+  d.regions.forEach(region => {
+    const card = document.createElement('div');
+    card.className = 'region-card';
+    const maxAbs = Math.max(...region.indices.map(i => Math.abs(i.raw)));
+    card.innerHTML = `<div class="region-header">${region.name}</div><table>
+      ${region.indices.map(idx => {
+        const cls = idx.raw > 0 ? 'up' : idx.raw < 0 ? 'down' : 'flat';
+        const w = maxAbs > 0 ? Math.round(Math.abs(idx.raw)/maxAbs*100) : 0;
+        const bc = idx.raw >= 0 ? 'var(--accent)' : 'var(--danger)';
+        return `<tr>
+          <td class="idx-name">${idx.name}</td>
+          <td class="bar-cell"><div class="mini-bar"><div class="mini-bar-fill" style="width:${w}%;background:${bc}"></div></div></td>
+          <td class="idx-price">${idx.price}</td>
+          <td class="idx-change ${cls}">${idx.change}</td>
+        </tr>`;
+      }).join('')}</table>`;
+    grid.appendChild(card);
+  });
+
+  const fxGrid = document.getElementById('fxGrid');
+  d.fx.forEach(item => {
+    const cls = item.raw > 0 ? 'up' : item.raw < 0 ? 'down' : 'flat';
+    const card = document.createElement('div');
+    card.className = 'fx-card';
+    card.innerHTML = `
+      <div class="fx-label">${item.label}</div>
+      <div class="fx-value">${item.value}</div>
+      <div class="fx-sub ${cls}">${item.change}</div>
+      <div class="fx-note">${item.note}</div>`;
+    fxGrid.appendChild(card);
+  });
+
+  d.news.forEach((n, i) => {
+    const item = document.createElement('div');
+    item.className = 'news-item';
+    item.innerHTML = `
+      <div class="news-num">0${i+1}</div>
+      <div>
+        <div class="news-tag">${n.tag}</div>
+        <div class="news-title">${n.title}</div>
+        <div class="news-body">${n.body}</div>
+      </div>`;
+    document.getElementById('newsList').appendChild(item);
+  });
+}
+
+// ── 渲染：ETF ／ 個股 ─────────────────────────────────
+function renderEtf(d) {
+  document.getElementById('etfSummaryText').textContent = d.summary;
+
+  const container = document.getElementById('etfGroups');
+  container.innerHTML = '';
+
+  const GROUP_LABELS = {
+    us_etf:    '🇺🇸 美股 ETF',
+    tw_etf:    '🇹🇼 台股 ETF',
+    stocks:    '📊 個股追蹤',
+    bond_etf:  '🏦 債券 ETF',
+  };
+
+  const groupOrder = ['us_etf', 'tw_etf', 'stocks', 'bond_etf'];
+
+  groupOrder.forEach(key => {
+    const items = d.groups[key];
+    if (!items || items.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'etf-group';
+    section.innerHTML = `<div class="section-title">${GROUP_LABELS[key] || key}</div>`;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'etf-table-wrap';
+
+    // header row
+    wrap.innerHTML = `
+      <div class="etf-table-header">
+        <span class="etf-table-header-title">${GROUP_LABELS[key] || key}</span>
+        <span class="etf-count">${items.length} 檔</span>
+      </div>
+      <div class="etf-row-header">
+        <span>代號</span><span>名稱</span><span>收盤價</span><span>漲跌幅</span><span>備註</span>
+      </div>`;
+
+    items.forEach((item, i) => {
+      const cls = item.raw > 0 ? 'up' : item.raw < 0 ? 'down' : 'flat';
+      const row = document.createElement('div');
+      row.className = 'etf-row';
+      row.style.animationDelay = `${i * 0.05}s`;
+      row.innerHTML = `
+        <div class="etf-ticker">${item.ticker}</div>
+        <div class="etf-name">${item.name}<small>${item.desc || ''}</small></div>
+        <div class="etf-price">${item.price}</div>
+        <div class="etf-chg ${cls}">${item.change}</div>
+        <div class="etf-note">${item.note || '—'}</div>`;
+      wrap.appendChild(row);
+    });
+
+    section.appendChild(wrap);
+    container.appendChild(section);
+  });
+}
+
+// ── 渲染：文章卡片 ────────────────────────────────────
+const TAB_CONFIG = {
+  ai:      { listId:'aiList',      accent:'var(--accent3)', topicColor:'rgba(168,85,247,' },
+  frontend:{ listId:'feList',      accent:'var(--accent2)', topicColor:'rgba(59,130,246,' },
+  startup: { listId:'startupList', accent:'var(--accent4)', topicColor:'rgba(245,158,11,' },
+};
+
+function renderArticles(tabKey, articles) {
+  const cfg = TAB_CONFIG[tabKey];
+  const list = document.getElementById(cfg.listId);
+  list.innerHTML = '';
+  if (!articles || articles.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div>今日尚無資料</div>`;
+    return;
+  }
+  articles.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = 'article-card';
+    card.style.cssText = `--card-accent:${cfg.accent};animation-delay:${i*0.07}s`;
+    const impactCls = a.impact==='high'?'impact-high':a.impact==='mid'?'impact-mid':'impact-low';
+    const impactLabel = a.impact==='high'?'高關注':a.impact==='mid'?'值得看':'參考';
+    card.innerHTML = `
+      <div class="card-meta">
+        <span class="card-topic-tag" style="background:${cfg.topicColor}.12);color:${cfg.accent};border:1px solid ${cfg.topicColor}.3)">${a.topic}</span>
+        <span class="card-impact ${impactCls}">${impactLabel}</span>
+      </div>
+      <div class="card-title">${a.title}</div>
+      <div class="card-summary">${a.summary}</div>
+      <div class="card-footer">
+        <span class="card-source">📰 ${a.source}</span>
+        <span class="card-rel" style="color:${cfg.accent};background:${cfg.topicColor}.06);border:1px solid ${cfg.topicColor}.2)">👨‍💻 ${a.relevance}</span>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ── 主入口 ────────────────────────────────────────────
+function init() {
+  if (typeof DAILY_DATA === 'undefined') {
+    document.getElementById('tab-market').innerHTML =
+      `<div class="empty-state"><div class="icon">📂</div>找不到 data.js<br><br>
+       <span style="font-size:11px">請將 Cowork 產出的 data.js 放在同一個資料夾</span></div>`;
+    return;
+  }
+  renderMarket(DAILY_DATA.market);
+  if (DAILY_DATA.etf)      renderEtf(DAILY_DATA.etf);
+  renderArticles('ai',       DAILY_DATA.ai);
+  renderArticles('frontend', DAILY_DATA.frontend);
+  renderArticles('startup',  DAILY_DATA.startup);
+}
+
+init();
+</script>
+
+<script src="data.js"></script>
+</body>
+</html>
